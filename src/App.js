@@ -2,7 +2,6 @@ import React from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { PieChart, Pie, Cell, Tooltip } from "recharts";
 
-// 🔥 backend URL (Render)
 const API = "https://ai-auth-backend-8vly.onrender.com";
 
 function App() {
@@ -24,16 +23,15 @@ function App() {
 
   const COLORS = ["#4f46e5", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4"];
 
-  const getToken = async () => {
+  const getToken = React.useCallback(async () => {
     return await getAccessTokenSilently({
       authorizationParams: {
         audience: "https://my-api",
       },
     });
-  };
+  }, [getAccessTokenSilently]);
 
-  // LOAD
-  const loadExpenses = async () => {
+  const loadExpenses = React.useCallback(async () => {
     try {
       const token = await getToken();
 
@@ -43,7 +41,9 @@ function App() {
         },
       });
 
-      if (!res.ok) throw new Error("Load failed");
+      if (!res.ok) {
+        throw new Error("Load failed");
+      }
 
       const data = await res.json();
       setExpenses(data);
@@ -51,12 +51,12 @@ function App() {
       console.error(err);
       alert("❌ Load failed");
     }
-  };
+  }, [getToken]);
 
-  // ADD
   const addExpense = async () => {
     if (!amount || !category.trim()) {
-      return alert("กรอกข้อมูลให้ครบ");
+      alert("กรอกข้อมูลให้ครบ");
+      return;
     }
 
     try {
@@ -81,7 +81,6 @@ function App() {
 
       setAmount("");
       setCategory("");
-
       await loadExpenses();
       alert("✅ Added!");
     } catch (err) {
@@ -90,7 +89,6 @@ function App() {
     }
   };
 
-  // 🤖 AI (🔥 FIXED)
   const getAI = async () => {
     try {
       const token = await getToken();
@@ -102,7 +100,7 @@ function App() {
       });
 
       const data = await res.json();
-      setAiText(data.message || "ไม่มีข้อมูล"); // ✅ FIX ตรงนี้
+      setAiText(data.message || "ไม่มีข้อมูล");
     } catch (err) {
       console.error(err);
       setAiText("AI error");
@@ -113,26 +111,30 @@ function App() {
     if (isAuthenticated) {
       loadExpenses();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, loadExpenses]);
 
-  const total = expenses.reduce((s, e) => s + e.amount, 0);
+  const total = expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
   const remaining = savedBudget - total;
 
   const chartData = Object.values(
-    expenses.reduce((acc, e) => {
-      if (!e.category) return acc;
+    expenses.reduce((acc, expense) => {
+      if (!expense.category) return acc;
 
-      acc[e.category] = acc[e.category] || {
-        name: e.category,
-        value: 0,
-      };
+      if (!acc[expense.category]) {
+        acc[expense.category] = {
+          name: expense.category,
+          value: 0,
+        };
+      }
 
-      acc[e.category].value += e.amount;
+      acc[expense.category].value += Number(expense.amount || 0);
       return acc;
     }, {})
   );
 
-  if (isLoading) return <div style={{ marginTop: 50 }}>Loading...</div>;
+  if (isLoading) {
+    return <div style={{ marginTop: 50 }}>Loading...</div>;
+  }
 
   return (
     <div style={styles.container}>
@@ -140,11 +142,10 @@ function App() {
 
       {isAuthenticated ? (
         <div style={styles.card}>
-          <img src={user.picture} alt="" style={styles.avatar} />
+          <img src={user.picture} alt="profile" style={styles.avatar} />
           <h2>{user.nickname}</h2>
           <p style={styles.email}>{user.email}</p>
 
-          {/* BUDGET */}
           <div style={styles.section}>
             <h3>💰 Budget</h3>
             <input
@@ -165,7 +166,6 @@ function App() {
             </button>
           </div>
 
-          {/* ADD */}
           <div style={styles.section}>
             <h3>➕ Add Expense</h3>
             <input
@@ -188,24 +188,22 @@ function App() {
             </button>
           </div>
 
-          {/* LIST */}
           <div style={styles.section}>
             <h3>📊 Expenses</h3>
 
             {expenses.length === 0 ? (
               <p style={{ color: "#888" }}>No data</p>
             ) : (
-              expenses.map((e, i) => (
-                <div key={i} style={styles.expenseItem}>
+              expenses.map((expense, index) => (
+                <div key={index} style={styles.expenseItem}>
                   <span>
-                    {e.category} - {e.amount} THB
+                    {expense.category} - {expense.amount} THB
                   </span>
                 </div>
               ))
             )}
           </div>
 
-          {/* SUMMARY */}
           <div style={styles.summaryBox}>
             <h3>📊 Summary</h3>
             <p>Total: {total} THB</p>
@@ -225,19 +223,17 @@ function App() {
             {aiText && <p style={styles.aiText}>{aiText}</p>}
           </div>
 
-          {/* CHART */}
           {chartData.length > 0 && (
             <PieChart width={280} height={280}>
               <Pie data={chartData} dataKey="value" outerRadius={100}>
-                {chartData.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                {chartData.map((_, index) => (
+                  <Cell key={index} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip />
             </PieChart>
           )}
 
-          {/* LOGOUT */}
           <button
             style={styles.logoutBtn}
             onClick={() =>
@@ -355,6 +351,7 @@ const styles = {
   aiText: {
     marginTop: 10,
     fontStyle: "italic",
+    whiteSpace: "pre-wrap",
   },
   logoutBtn: {
     marginTop: 20,
