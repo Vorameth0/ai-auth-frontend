@@ -2,6 +2,9 @@ import React from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { PieChart, Pie, Cell, Tooltip } from "recharts";
 
+// 🔥 backend URL (Render)
+const API = "https://ai-auth-backend-8vly.onrender.com";
+
 function App() {
   const {
     isLoading,
@@ -29,19 +32,18 @@ function App() {
     });
   };
 
-  // ✅ LOAD
+  // LOAD
   const loadExpenses = async () => {
     try {
-      console.log("LOADING...");
       const token = await getToken();
 
-      const res = await fetch("http://localhost:5001/expenses", {
+      const res = await fetch(`${API}/expenses`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      if (!res.ok) throw new Error("โหลดไม่ได้");
+      if (!res.ok) throw new Error("Load failed");
 
       const data = await res.json();
       setExpenses(data);
@@ -51,17 +53,16 @@ function App() {
     }
   };
 
-  // ✅ ADD
+  // ADD
   const addExpense = async () => {
     if (!amount || !category.trim()) {
       return alert("กรอกข้อมูลให้ครบ");
     }
 
     try {
-      console.log("ADDING...");
       const token = await getToken();
 
-      const res = await fetch("http://localhost:5001/expenses", {
+      const res = await fetch(`${API}/expenses`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -89,19 +90,19 @@ function App() {
     }
   };
 
-  // 🤖 AI (mock)
+  // 🤖 AI (🔥 FIXED)
   const getAI = async () => {
     try {
       const token = await getToken();
 
-      const res = await fetch("http://localhost:5001/ai-summary", {
+      const res = await fetch(`${API}/ai-summary`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
       const data = await res.json();
-      setAiText(data.summary || "ไม่มีข้อมูล");
+      setAiText(data.message || "ไม่มีข้อมูล"); // ✅ FIX ตรงนี้
     } catch (err) {
       console.error(err);
       setAiText("AI error");
