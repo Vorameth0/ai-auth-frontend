@@ -89,6 +89,29 @@ function App() {
     }
   };
 
+  const deleteExpense = async (id) => {
+    try {
+      const token = await getToken();
+
+      const res = await fetch(`${API}/expenses/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text);
+      }
+
+      await loadExpenses();
+    } catch (err) {
+      console.error(err);
+      alert("❌ Delete failed: " + err.message);
+    }
+  };
+
   const getAI = async () => {
     try {
       const token = await getToken();
@@ -194,11 +217,17 @@ function App() {
             {expenses.length === 0 ? (
               <p style={{ color: "#888" }}>No data</p>
             ) : (
-              expenses.map((expense, index) => (
-                <div key={index} style={styles.expenseItem}>
+              expenses.map((expense) => (
+                <div key={expense.id} style={styles.expenseItem}>
                   <span>
                     {expense.category} - {expense.amount} THB
                   </span>
+                  <button
+                    style={styles.deleteBtn}
+                    onClick={() => deleteExpense(expense.id)}
+                  >
+                    🗑
+                  </button>
                 </div>
               ))
             )}
@@ -337,10 +366,17 @@ const styles = {
   expenseItem: {
     display: "flex",
     justifyContent: "space-between",
+    alignItems: "center",
     marginTop: 8,
     padding: "8px 10px",
     borderRadius: 8,
     background: "#f9fafb",
+  },
+  deleteBtn: {
+    background: "transparent",
+    border: "none",
+    cursor: "pointer",
+    fontSize: 18,
   },
   summaryBox: {
     marginTop: 20,
